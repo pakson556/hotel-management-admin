@@ -1,26 +1,45 @@
 const initialState = [];
 
 function formatData(items) {
-  let tempItems = Object.values(items).map((item) => {
-    let id = item.sys.id;
-    let images = item.fields.images.map((image) => image.fields.file.url);
-    let room = { ...item.fields, images, id };
-    return room;
-  });
-  return tempItems;
+  if (!items) return [];
+
+  const list = Array.isArray(items) ? items : Object.values(items);
+
+  return list
+    .filter(Boolean)
+    .map((item) => {
+      const id = item?.sys?.id ?? item?.id ?? item?._id ?? "";
+
+      const images =
+        item?.fields?.images
+          ?.map((img) => img?.fields?.file?.url)
+          .filter(Boolean) ?? [];
+      const roomFields = item?.fields ?? item;
+
+      return { ...roomFields, images, id };
+    });
 }
 
 export const reducer = (state = initialState, { type, payload }) => {
   switch (type) {
-    case "FIREBASE":
-      let rooms = formatData(payload.outData.hotels);
-      let temp = [];
-      for (let i of rooms) i && temp.push(i);
-      rooms = temp;
-      let featuredRooms = rooms.filter((room) => room.featured === true);
-      let slug = rooms[0].slug;
-      let maxPrice = Math.max(...rooms.map((item) => item.price));
-      let maxSize = Math.max(...rooms.map((item) => item.size));
+    case "FIREBASE": {
+      const hotels = payload?.outData?.hotels ?? null;
+      const users = payload?.outData?.users ?? [];
+
+      let rooms = formatData(hotels);
+      rooms = rooms.filter(Boolean);
+
+      const featuredRooms = rooms.filter((room) => room?.featured === true);
+
+      const slug = rooms[0]?.slug ?? "";
+
+      const maxPrice = rooms.length
+        ? Math.max(...rooms.map((item) => Number(item?.price ?? 0)))
+        : 0;
+
+      const maxSize = rooms.length
+        ? Math.max(...rooms.map((item) => Number(item?.size ?? 0)))
+        : 0;
 
       const roomsData = [
         {
@@ -40,9 +59,9 @@ export const reducer = (state = initialState, { type, payload }) => {
           minSize: 0,
         },
       ];
-      const users = payload.outData.users;
 
       return [roomsData, users];
+    }
 
     default:
       return state;
