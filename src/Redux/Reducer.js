@@ -2,27 +2,33 @@ const initialState = [];
 
 function formatData(items) {
   if (!items) return [];
-  let tempItems = Object.values(items).map((item) => {
-    let id = item.sys.id;
-    let images = item.fields.images.map((image) => image.fields.file.url);
-    let room = { ...item.fields, images, id };
-    return room;
+
+  return Object.entries(items).map(([key, item]) => {
+    const images =
+      item.images ||
+      item.imageurls ||
+      [item.image1, item.image2, item.image3, item.image4].filter(Boolean);
+
+    return {
+      ...item,
+      id: item.id || key,
+      slug: item.slug || key,
+      images: Array.isArray(images) ? images : [],
+    };
   });
-  return tempItems;
 }
 
 export const reducer = (state = initialState, { type, payload }) => {
   switch (type) {
-    case "FIREBASE":
+    case "FIREBASE": {
       let rooms = payload.outData?.hotels ? formatData(payload.outData.hotels) : [];
-      let temp = [];
-      for (let i of rooms) i && temp.push(i);
-      rooms = temp;
-      
-      let featuredRooms = rooms.filter((room) => room.featured === true);
-      let slug = rooms[0]?.slug || "";
-      let maxPrice = Math.max(...rooms.map((item) => item.price), 0);
-      let maxSize = Math.max(...rooms.map((item) => item.size), 0);
+
+      rooms = rooms.filter(Boolean);
+
+      const featuredRooms = rooms.filter((room) => room.featured === true);
+      const slug = rooms[0]?.slug || "";
+      const maxPrice = rooms.length ? Math.max(...rooms.map((item) => Number(item.price) || 0)) : 0;
+      const maxSize = rooms.length ? Math.max(...rooms.map((item) => Number(item.size) || 0)) : 0;
 
       const roomsData = [
         {
@@ -42,11 +48,12 @@ export const reducer = (state = initialState, { type, payload }) => {
           minSize: 0,
         },
       ];
-      
-      const users = payload.outData?.users || {};
+
+      const users = payload.outData?.Users || {};
       const bookings = payload.outData?.bookings || {};
 
       return [roomsData, users, bookings];
+    }
 
     default:
       return state;

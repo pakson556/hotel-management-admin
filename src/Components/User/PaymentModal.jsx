@@ -133,9 +133,9 @@ const PaymentModal = ({ show, onHide, roomDetails, onPaymentComplete }) => {
           <div className="col-md-6">
             <h5>Booking Summary</h5>
             <p>
-              <strong>Room:</strong> {roomDetails?.name}<br />
-              <strong>Price:</strong> Rs {roomDetails?.price}/night<br />
-              <strong>Total:</strong> Rs {roomDetails?.totalPrice}
+                <strong>Room:</strong> {roomDetails?.name}<br />
+                <strong>Price:</strong> £ {Number(roomDetails?.price || 0).toLocaleString()}/night<br />
+                <strong>Total:</strong> £ {Number(roomDetails?.totalPrice || 0).toLocaleString()}
             </p>
           </div>
           <div className="col-md-6">
@@ -178,7 +178,7 @@ const PaymentModal = ({ show, onHide, roomDetails, onPaymentComplete }) => {
             onClick={handlePayment}
             disabled={processing}
           >
-            {processing ? "Processing..." : `Pay Rs ${roomDetails?.totalPrice}`}
+            {processing ? "Processing..." : `Pay £ ${Number(roomDetails?.totalPrice || 0).toLocaleString()}`}
           </button>
         )}
       </Modal.Footer>

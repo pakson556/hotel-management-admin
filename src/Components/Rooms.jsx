@@ -1,10 +1,16 @@
 import React from "react";
 import RoomsContainer from "./RoomsContainer";
+import Navbar from "./Navbar";
+
 const Rooms = () => {
   return (
-    <div>
-      <RoomsContainer />
-    </div>
+    <>
+      <Navbar />
+
+      <div style={{ marginTop: "120px" }}>
+        <RoomsContainer />
+      </div>
+    </>
   );
 };
 

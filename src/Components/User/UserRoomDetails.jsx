@@ -13,17 +13,14 @@ import { FaWifi } from "react-icons/fa";
 
 const HeroSection = styled.div`
   height: 60vh;
-  background: url(${props => props.img}) center/cover no-repeat;
+  background: url(${(props) => props.img}) center/cover no-repeat;
   position: relative;
   margin-top: 76px;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: rgba(0, 0, 0, 0.5);
   }
 
@@ -52,7 +49,7 @@ const UserRoomDetails = () => {
   const navigate = useNavigate();
   const { user } = useUserAuth();
   const state = useSelector((state) => state);
-  
+
   const [room, setRoom] = useState(null);
   const [checkIn, setCheckIn] = useState(new Date());
   const [checkOut, setCheckOut] = useState(new Date(Date.now() + 86400000));
@@ -60,20 +57,60 @@ const UserRoomDetails = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
 
+  const normalizeRoom = (roomObj, index = 0) => {
+    const fields = roomObj?.fields || roomObj;
+
+    const images = Array.isArray(fields?.images)
+      ? fields.images.map((img) => img?.fields?.file?.url).filter(Boolean)
+      : Array.isArray(roomObj?.images)
+      ? roomObj.images
+      : [roomObj?.image1, roomObj?.image2, roomObj?.image3, roomObj?.image4].filter(Boolean);
+
+    const extras = Array.isArray(fields?.extras)
+      ? fields.extras
+      : Array.isArray(roomObj?.extras)
+      ? roomObj.extras
+      : typeof roomObj?.extras === "string"
+      ? roomObj.extras.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
+
+    return {
+      id: roomObj?.sys?.id || roomObj?.id || `room-${index}`,
+      slug: fields?.slug || roomObj?.slug || roomObj?.id || `room-${index}`,
+      name: fields?.name || roomObj?.name || "Room",
+      type: fields?.type || roomObj?.type || "Standard",
+      price: Number(fields?.price || roomObj?.price || 0),
+      size: Number(fields?.size || roomObj?.size || 0),
+      capacity: Number(fields?.capacity || roomObj?.capacity || 1),
+      breakfast: Boolean(fields?.breakfast ?? roomObj?.breakfast),
+      pets: Boolean(fields?.pets ?? roomObj?.pets),
+      description: fields?.description || roomObj?.description || "",
+      extras,
+      images,
+    };
+  };
+
   useEffect(() => {
-    if (state[0] && state[0][0]) {
-      const foundRoom = state[0][0].rooms.find(r => r.slug === slug);
-      setRoom(foundRoom);
+    if (state?.[0]?.[0]?.rooms) {
+      const normalizedRooms = state[0][0].rooms.map(normalizeRoom);
+      const foundRoom = normalizedRooms.find((r) => r.slug === slug);
+      setRoom(foundRoom || null);
     }
   }, [state, slug]);
 
   const calculateTotal = () => {
-    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+    const nights = Math.max(
+      1,
+      Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+    );
     return room ? room.price * nights : 0;
   };
 
   const handleBooking = () => {
+    if (!room || !user) return;
+
     const total = calculateTotal();
+
     setBookingDetails({
       ...room,
       checkIn: checkIn.toISOString(),
@@ -81,39 +118,63 @@ const UserRoomDetails = () => {
       guests,
       totalPrice: total,
       userEmail: user.email,
-      userName: user.displayName,
-      bookingDate: new Date().toISOString()
+      userName: user.displayName || user.email,
+      bookingDate: new Date().toISOString(),
     });
+
     setShowPayment(true);
   };
 
   const handlePaymentComplete = async (paymentInfo) => {
     const bookingRef = ref(db, "bookings");
     const newBookingRef = push(bookingRef);
-    
+
     const bookingData = {
       ...bookingDetails,
       id: newBookingRef.key,
       paymentMethod: paymentInfo.method,
       paymentStatus: paymentInfo.status,
       transactionId: paymentInfo.transactionId,
-      bookingStatus: "confirmed",
-      timestamp: new Date().toISOString()
+      bookingStatus: "pending",
+      timestamp: new Date().toISOString(),
     };
 
     await set(newBookingRef, bookingData);
-    
+
     setShowPayment(false);
-    alert("Booking confirmed! Check your email for details.");
+    alert("Booking submitted successfully!");
     navigate("/user/my-bookings");
   };
+
+  if (!state?.[0]?.[0]?.rooms) {
+    return (
+      <>
+        <UserNavbar />
+        <div
+          className="container text-center py-5"
+          style={{ marginTop: "100px" }}
+        >
+          <h2>Loading...</h2>
+        </div>
+      </>
+    );
+  }
 
   if (!room) {
     return (
       <>
         <UserNavbar />
-        <div className="container text-center py-5" style={{ marginTop: "100px" }}>
-          <h2>Loading...</h2>
+        <div
+          className="container text-center py-5"
+          style={{ marginTop: "100px" }}
+        >
+          <h2>Room not found</h2>
+          <button
+            className="btn btn-primary mt-3"
+            onClick={() => navigate("/user/rooms")}
+          >
+            Back to Rooms
+          </button>
         </div>
       </>
     );
@@ -122,7 +183,13 @@ const UserRoomDetails = () => {
   return (
     <>
       <UserNavbar />
-      <HeroSection img={room.images[0]}>
+
+      <HeroSection
+        img={
+          room.images?.[0] ||
+          "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1350&q=80"
+        }
+      >
         <div className="content">
           <h1>{room.name}</h1>
           <p className="lead">{room.type}</p>
@@ -133,7 +200,7 @@ const UserRoomDetails = () => {
         <div className="row">
           <div className="col-md-8">
             <div className="row mb-4">
-              {room.images.slice(1).map((img, index) => (
+              {(room.images || []).slice(1).map((img, index) => (
                 <div className="col-md-4 mb-3" key={index}>
                   <img src={img} alt={room.name} className="img-fluid rounded" />
                 </div>
@@ -147,11 +214,15 @@ const UserRoomDetails = () => {
             <div className="row">
               <div className="col-md-6">
                 <ul className="list-unstyled">
-                  {room.extras && room.extras.map((extra, index) => (
-                    <li key={index} className="mb-2">
-                      <FaWifi className="text-primary mr-2" /> {extra}
-                    </li>
-                  ))}
+                  {(room.extras || []).length > 0 ? (
+                    room.extras.map((extra, index) => (
+                      <li key={index} className="mb-2">
+                        <FaWifi className="text-primary mr-2" /> {extra}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="mb-2">No extras listed</li>
+                  )}
                 </ul>
               </div>
             </div>
@@ -159,12 +230,21 @@ const UserRoomDetails = () => {
             <h4 className="mt-4">Features</h4>
             <div className="row">
               <div className="col-md-6">
-                <p><strong>Size:</strong> {room.size} sqft</p>
-                <p><strong>Capacity:</strong> {room.capacity} guests</p>
+                <p>
+                  <strong>Size:</strong> {room.size} sqft
+                </p>
+                <p>
+                  <strong>Capacity:</strong> {room.capacity} guests
+                </p>
               </div>
               <div className="col-md-6">
-                <p><strong>Breakfast:</strong> {room.breakfast ? "Included" : "Not included"}</p>
-                <p><strong>Pets:</strong> {room.pets ? "Allowed" : "Not allowed"}</p>
+                <p>
+                  <strong>Breakfast:</strong>{" "}
+                  {room.breakfast ? "Included" : "Not included"}
+                </p>
+                <p>
+                  <strong>Pets:</strong> {room.pets ? "Allowed" : "Not allowed"}
+                </p>
               </div>
             </div>
           </div>
@@ -172,19 +252,22 @@ const UserRoomDetails = () => {
           <div className="col-md-4">
             <BookingCard>
               <h4>Book this room</h4>
-              <p className="h3 text-primary">Rs {room.price}<small>/night</small></p>
-              
+              <p className="h3 text-primary">
+                £ {Number(room.price).toLocaleString()}
+                <small>/night</small>
+              </p>
+
               <div className="form-group">
                 <label>Check-in</label>
                 <DatePicker
                   selected={checkIn}
-                  onChange={date => setCheckIn(date)}
+                  onChange={(date) => setCheckIn(date)}
                   selectsStart
                   startDate={checkIn}
                   endDate={checkOut}
                   minDate={new Date()}
                   className="form-control"
-                  dateFormat="MM/dd/yyyy"
+                  dateFormat="dd/MM/yyyy"
                 />
               </div>
 
@@ -192,25 +275,27 @@ const UserRoomDetails = () => {
                 <label>Check-out</label>
                 <DatePicker
                   selected={checkOut}
-                  onChange={date => setCheckOut(date)}
+                  onChange={(date) => setCheckOut(date)}
                   selectsEnd
                   startDate={checkIn}
                   endDate={checkOut}
                   minDate={checkIn}
                   className="form-control"
-                  dateFormat="MM/dd/yyyy"
+                  dateFormat="dd/MM/yyyy"
                 />
               </div>
 
               <div className="form-group">
                 <label>Guests</label>
-                <select 
+                <select
                   className="form-control"
                   value={guests}
-                  onChange={(e) => setGuests(parseInt(e.target.value))}
+                  onChange={(e) => setGuests(parseInt(e.target.value, 10))}
                 >
                   {[...Array(room.capacity)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -219,10 +304,10 @@ const UserRoomDetails = () => {
 
               <div className="d-flex justify-content-between mb-3">
                 <span>Total:</span>
-                <span className="h5">Rs {calculateTotal()}</span>
+                <span className="h5">£ {Number(calculateTotal()).toLocaleString()}</span>
               </div>
 
-              <button 
+              <button
                 className="btn btn-primary btn-block btn-lg"
                 onClick={handleBooking}
               >

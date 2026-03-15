@@ -2,14 +2,13 @@ import { ref, update } from "firebase/database";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { db } from "../firebase";
-import { v4 } from "uuid";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import Navbar from "./Navbar";
 
 const UpdateRoom = () => {
   const { slug } = useParams();
   const state = useSelector((state) => state);
   const navigate = useNavigate();
-  const uid = v4();
 
   const [name, setName] = useState("");
   const [type, settype] = useState("");
@@ -25,52 +24,71 @@ const UpdateRoom = () => {
   const [image3, setImage3] = useState("");
   const [image4, setImage4] = useState("");
 
-  function getRoom(arg) {
-    
-    const idiRooms = state[0][0].rooms.map((item) => item);
-    const roomDatas = idiRooms.filter((roomItem) => roomItem.slug === arg);
-    return roomDatas;
-  }
+  const rooms = state?.[0]?.[0]?.rooms || [];
 
-  if (state.length > 0 && slug) {
-    const roomData = getRoom(slug);
-    console.log(roomData);
-    if (roomData.length > 0) {
-      var id = roomData[0].id;
-      var newtype = roomData[0].type;
-      var newname = roomData[0].name;
-      var newdescription = roomData[0].description;
-      var newcapacity = roomData[0].capacity;
-      var newsize = roomData[0].size;
-      var newprice = roomData[0].price;
-      var newextras = roomData[0].extras;
-      var newbreakfast = roomData[0].breakfast;
-      var newpets = roomData[0].pets;
-      const images = roomData[0].images;
-      var img1 = images[0];
-      var img2 = images[1];
-      var img3 = images[2];
-      var img4 = images[3];
-    }
-  }
+  const normalizeRoom = (roomObj, index = 0) => {
+    const fields = roomObj?.fields || roomObj;
+
+    const images = Array.isArray(fields?.images)
+      ? fields.images.map((img) => img?.fields?.file?.url).filter(Boolean)
+      : Array.isArray(roomObj?.images)
+      ? roomObj.images
+      : [roomObj?.image1, roomObj?.image2, roomObj?.image3, roomObj?.image4].filter(Boolean);
+
+    const extras = Array.isArray(fields?.extras)
+      ? fields.extras
+      : Array.isArray(roomObj?.extras)
+      ? roomObj.extras
+      : typeof roomObj?.extras === "string"
+      ? roomObj.extras.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
+
+    const id = roomObj?.sys?.id || roomObj?.id || `room-${index}`;
+    const roomSlug = fields?.slug || roomObj?.slug || id;
+
+    return {
+      id: String(id),
+      slug: String(roomSlug),
+      name: fields?.name || roomObj?.name || "",
+      type: fields?.type || roomObj?.type || "",
+      price: Number(fields?.price || roomObj?.price || 0),
+      size: Number(fields?.size || roomObj?.size || 0),
+      capacity: Number(fields?.capacity || roomObj?.capacity || 1),
+      pets: Boolean(fields?.pets ?? roomObj?.pets),
+      breakfast: Boolean(fields?.breakfast ?? roomObj?.breakfast),
+      description: fields?.description || roomObj?.description || "",
+      extras,
+      images,
+    };
+  };
+
+  const normalizedRooms = rooms.map(normalizeRoom);
+
+  const room =
+    normalizedRooms.find((roomItem) => String(roomItem.slug).trim() === String(slug).trim()) ||
+    normalizedRooms.find((roomItem) => String(roomItem.id).trim() === String(slug).trim()) ||
+    null;
+
+  const id = room?.id;
+  const currentSlug = room?.slug || slug;
 
   useEffect(() => {
-    setName(newname || "");
-    setcapacity(newcapacity);
-    settype(newtype);
-    setdescription(newdescription);
-    setprice(newprice);
-    setsize(newsize);
-    setextras(newextras && newextras.toString());
-    setbreakfast(newbreakfast);
-    setpets(newpets);
-    setImage1(img1);
-    setImage2(img2);
-    setImage3(img3);
-    setImage4(img4);
-    console.log(name);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (room) {
+      setName(room.name || "");
+      settype(room.type || "");
+      setprice(room.price || 0);
+      setsize(room.size || 0);
+      setcapacity(room.capacity || 1);
+      setpets(room.pets || false);
+      setbreakfast(room.breakfast || false);
+      setdescription(room.description || "");
+      setextras(Array.isArray(room.extras) ? room.extras.join(", ") : "");
+      setImage1(room.images?.[0] || "");
+      setImage2(room.images?.[1] || "");
+      setImage3(room.images?.[2] || "");
+      setImage4(room.images?.[3] || "");
+    }
+  }, [room]);
 
   async function updateRoomFirebase() {
     if (
@@ -85,80 +103,76 @@ const UpdateRoom = () => {
       image3 &&
       image4
     ) {
-      await update(ref(db, `hotels/${id}`), {
-        sys: {
-          id,
-        },
-        fields: {
-          name,
-          slug: uid.toString(),
-          type: newtype,
-          price,
-          size,
-          capacity,
-          pets,
-          breakfast,
-          featured: false,
-          description: description,
-          extras: extras.split(","),
-          images: [
-            {
-              fields: {
-                file: {
-                  url: image1,
+      try {
+        await update(ref(db, `hotels/${id}`), {
+          sys: {
+            id,
+          },
+          fields: {
+            name,
+            slug: currentSlug, // keep the same slug
+            type,
+            price: Number(price),
+            size: Number(size),
+            capacity: Number(capacity),
+            pets,
+            breakfast,
+            featured: false,
+            description,
+            extras: extras
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+            images: [
+              {
+                fields: {
+                  file: {
+                    url: image1,
+                  },
                 },
               },
-            },
-            {
-              fields: {
-                file: {
-                  url: image2,
+              {
+                fields: {
+                  file: {
+                    url: image2,
+                  },
                 },
               },
-            },
-            {
-              fields: {
-                file: {
-                  url: image3,
+              {
+                fields: {
+                  file: {
+                    url: image3,
+                  },
                 },
               },
-            },
-            {
-              fields: {
-                file: {
-                  url: image4,
+              {
+                fields: {
+                  file: {
+                    url: image4,
+                  },
                 },
               },
-            },
-          ],
-        },
-      }).then(() => {
-        alert("Room updated.!");
-        setName("");
-        settype("");
-        setcapacity(0);
-        setdescription("");
-        setextras("");
-        setbreakfast(false);
-        setpets(false);
-        setprice(0);
-        setsize(0);
-        setImage1("");
-        setImage2("");
-        setImage3("");
-        setImage4("");
+            ],
+          },
+        });
 
-        navigate(`/rooms`);
-      });
+        alert("Room updated!");
+        navigate(`/rooms/${currentSlug}`);
+      } catch (error) {
+        alert("Failed to update room.");
+        console.error(error);
+      }
     } else {
-      return alert("Please fill all required fields.");
+      alert("Please fill all required fields.");
     }
   }
 
   return (
     <>
-      {slug ? (
-        <div className="container my-5">
+      <Navbar />
+
+      {slug && room ? (
+        <div className="container my-5" style={{ marginTop: "120px" }}>
           <div className="row">
             <div className="col-md-10 mx-auto col-12 card shadow-lg border-0 p-4">
               <div>
@@ -181,6 +195,17 @@ const UpdateRoom = () => {
                           required
                         />
 
+                        <label htmlFor="type">Type</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={type}
+                          onChange={(e) => settype(e.target.value)}
+                          id="type"
+                          placeholder="Room type"
+                          required
+                        />
+
                         <label htmlFor="price">Price</label>
                         <input
                           type="number"
@@ -191,6 +216,7 @@ const UpdateRoom = () => {
                           id="price"
                           placeholder="Room price"
                         />
+
                         <label htmlFor="size">Size</label>
                         <input
                           type="number"
@@ -201,6 +227,7 @@ const UpdateRoom = () => {
                           id="size"
                           placeholder="Room Size"
                         />
+
                         <label htmlFor="capacity">Capacity</label>
                         <input
                           type="number"
@@ -209,8 +236,9 @@ const UpdateRoom = () => {
                           className="form-control"
                           required
                           id="capacity"
-                          placeholder="Capacitiy"
+                          placeholder="Capacity"
                         />
+
                         <div className="custom-control custom-checkbox my-1">
                           <input
                             type="checkbox"
@@ -220,13 +248,11 @@ const UpdateRoom = () => {
                             name="breakfast"
                             id="breakfast"
                           />
-                          <label
-                            htmlFor="breakfast"
-                            className="custom-control-label"
-                          >
+                          <label htmlFor="breakfast" className="custom-control-label">
                             Breakfast
                           </label>
                         </div>
+
                         <div className="custom-control custom-checkbox my-1">
                           <input
                             type="checkbox"
@@ -236,10 +262,7 @@ const UpdateRoom = () => {
                             onChange={() => setpets(!pets)}
                             id="pets"
                           />
-                          <label
-                            htmlFor="pets"
-                            className="custom-control-label"
-                          >
+                          <label htmlFor="pets" className="custom-control-label">
                             Pets
                           </label>
                         </div>
@@ -254,9 +277,9 @@ const UpdateRoom = () => {
                           rows="3"
                         ></textarea>
 
-                        <label for="extras">Extras</label>
+                        <label htmlFor="extras">Extras</label>
                         <textarea
-                          class="form-control"
+                          className="form-control"
                           value={extras}
                           onChange={(e) => setextras(e.target.value)}
                           id="extras"
@@ -274,6 +297,7 @@ const UpdateRoom = () => {
                           placeholder="Image 1 URL"
                           required
                         />
+
                         <label htmlFor="img2">Image 2</label>
                         <input
                           type="text"
@@ -307,9 +331,8 @@ const UpdateRoom = () => {
                           required
                         />
                       </div>
-
-                      <div className="form-group form-check"></div>
                     </form>
+
                     <button
                       className="btn btn-block btn-outline-primary"
                       onClick={updateRoomFirebase}
@@ -323,21 +346,19 @@ const UpdateRoom = () => {
           </div>
         </div>
       ) : (
-        <>
-          <div className="container roomerror">
-            <div className="row my-5">
-              <div className="col-md-6 col-12 mx-auto">
-                <div className="card shadow-lg border-0 p-4 error">
-                  <h1 className="text-center display-4">Update</h1>
-                  <h3>Please select room from Room page..</h3>
-                  <Link to="/rooms" className="btn btn-warning mt-4 ">
-                    Back to Rooms
-                  </Link>
-                </div>
+        <div className="container roomerror" style={{ marginTop: "120px" }}>
+          <div className="row my-5">
+            <div className="col-md-6 col-12 mx-auto">
+              <div className="card shadow-lg border-0 p-4 error">
+                <h1 className="text-center display-4">Update</h1>
+                <h3>Please select room from Room page..</h3>
+                <Link to="/rooms" className="btn btn-warning mt-4">
+                  Back to Rooms
+                </Link>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </>
   );

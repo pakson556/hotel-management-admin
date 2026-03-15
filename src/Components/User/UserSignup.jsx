@@ -150,7 +150,7 @@ const UserSignup = () => {
 
           <Form.Group className="mb-3 phoneInput">
             <PhoneInput
-              country={"pk"}
+              country={"gb"}
               value={formData.phone}
               onChange={handlePhoneChange}
               inputStyle={{ width: "100%", height: "38px" }}

@@ -126,7 +126,7 @@ const UserDashboard = () => {
                       <FaStar className="text-warning" /> {room.type}
                     </p>
                     <p className="card-text">
-                      <strong>Rs {room.price}</strong> / night
+                      <strong>£ {room.price}</strong> / night
                     </p>
                     <Link
                       to={`/user/rooms/${room.slug}`}

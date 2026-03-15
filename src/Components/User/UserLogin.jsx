@@ -50,6 +50,7 @@ const UserLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
     try {
       await userLogin(email, password);
       navigate("/user/dashboard");
@@ -61,10 +62,15 @@ const UserLogin = () => {
   return (
     <Container>
       <LoginBox>
-        <h2 className="mb-4 text-center" style={{ color: "var(--primaryColor)" }}>
-          Welcome Back!
+        <h2
+          className="mb-4 text-center"
+          style={{ color: "var(--primaryColor)" }}
+        >
+          User Login
         </h2>
+
         {error && <Alert variant="danger">{error}</Alert>}
+
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Control
@@ -90,11 +96,19 @@ const UserLogin = () => {
 
           <Button type="submit">Login</Button>
         </Form>
+
         <div className="text-center mt-3">
           <p>
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link to="/user/signup" style={{ color: "var(--primaryColor)" }}>
               Sign Up
+            </Link>
+          </p>
+
+          <p>
+            Are you an admin?{" "}
+            <Link to="/admin/login" style={{ color: "var(--primaryColor)" }}>
+              Admin Login
             </Link>
           </p>
         </div>

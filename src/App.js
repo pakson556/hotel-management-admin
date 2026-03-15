@@ -15,6 +15,7 @@ import Bookings from "./Components/Bookings";
 import { UserAuthContextProvider } from "./contexts/UserAuthContext";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import Login from "./Components/Login";
+import AdminDashboard from "./Components/AdminDashboard";
 
 // User Pages
 import UserLogin from "./Components/User/UserLogin";
@@ -24,7 +25,8 @@ import UserRoomList from "./Components/User/UserRoomList";
 import UserRoomDetails from "./Components/User/UserRoomDetails";
 import UserBookings from "./Components/User/UserBookings";
 import UserProfile from "./Components/User/UserProfile";
-import UserProtectedRoute from "./Components/User/UserProtectedRoute";
+
+import UserProtectedRoute from "./Components/UserProtectedRoute";
 
 function App() {
   const dispatch = useDispatch();
@@ -52,6 +54,7 @@ function App() {
       <UserAuthContextProvider>
         <Routes>
           {/* Admin Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>}/>
           <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
           <Route path="/addRoom" element={<ProtectedRoute><AddRooms /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
@@ -59,8 +62,11 @@ function App() {
           <Route path="/update-room/" element={<ProtectedRoute><UpdateRoom /></ProtectedRoute>} />
           <Route path="/update-room/:slug" element={<ProtectedRoute><UpdateRoom /></ProtectedRoute>} />
           <Route path="/rooms/:slug" element={<ProtectedRoute><SingleRooms /></ProtectedRoute>} />
-          <Route path="/" element={<Login />} />
-          
+
+          {/*Login Routes */}
+          <Route path="/" element={<UserLogin />} />
+          <Route path="/admin/login" element={<Login />} />
+        
           {/* User Routes */}
           <Route path="/user/login" element={<UserLogin />} />
           <Route path="/user/signup" element={<UserSignup />} />
