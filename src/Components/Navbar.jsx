@@ -16,6 +16,11 @@ const Navbar = () => {
     }
   }
 
+  const activeStyle = ({ isActive }) => ({
+    color: isActive ? "white" : "#8f8f8f",
+    fontWeight: isActive ? "700" : "600",
+  });
+
   return (
     <>
       {user ? (
@@ -43,40 +48,51 @@ const Navbar = () => {
               </span>
             </button>
 
-            <div className="collapse navbar-collapse" id="navbarSupportedContent">
+            <div
+              className="collapse navbar-collapse"
+              id="navbarSupportedContent"
+            >
               <ul className="navbar-nav ml-auto">
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/dashboard">
+                  <NavLink className="nav-link" style={activeStyle} to="/dashboard">
                     Dashboard
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/rooms">
+                  <NavLink className="nav-link" style={activeStyle} to="/rooms">
                     Rooms
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/addRoom">
+                  <NavLink className="nav-link" style={activeStyle} to="/addRoom">
                     Add Room
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/update-room">
+                  <NavLink
+                    className="nav-link"
+                    style={activeStyle}
+                    to="/update-room"
+                  >
                     Update Room
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/users">
+                  <NavLink className="nav-link" style={activeStyle} to="/users">
                     Users
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/bookings">
+                  <NavLink
+                    className="nav-link"
+                    style={activeStyle}
+                    to="/bookings"
+                  >
                     Bookings
                   </NavLink>
                 </li>
