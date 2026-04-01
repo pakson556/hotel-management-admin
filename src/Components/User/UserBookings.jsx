@@ -47,6 +47,14 @@ const StatusBadge = styled.span`
   gap: 0.5rem;
 `;
 
+const MetaBox = styled.div`
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+`;
+
 const UserBookings = () => {
   const { user } = useUserAuth();
   const state = useSelector((state) => state);
@@ -60,11 +68,19 @@ const UserBookings = () => {
     if (method === "cash") return "Cash at Hotel";
     if (method === "card") return "Credit/Debit Card";
     if (method === "paypal") return "PayPal";
+    if (method === "metamask") return "MetaMask / Blockchain";
     return method || "N/A";
   };
 
   const formatBookingId = (id) => {
     return String(id || "").replace(/^-/, "");
+  };
+
+  const shortenHash = (value) => {
+    if (!value) return "N/A";
+    const str = String(value);
+    if (str.length <= 14) return str;
+    return `${str.slice(0, 8)}...${str.slice(-6)}`;
   };
 
   useEffect(() => {
@@ -118,12 +134,22 @@ Guests: ${booking.guests}
 
 Price per night: ${formatCurrency(booking.price)}
 Total nights: ${totalNights}
-
 TOTAL AMOUNT: ${formatCurrency(booking.totalPrice)}
+
 Payment Method: ${formatPaymentMethod(booking.paymentMethod)}
 Transaction ID: ${booking.transactionId || "N/A"}
+Booking Status: ${booking.bookingStatus}
 
-Status: ${booking.bookingStatus}
+BLOCKCHAIN DETAILS
+------------------
+Payment Mode: ${booking.paymentMode || "traditional"}
+Wallet Address: ${booking.walletAddress || "N/A"}
+On-chain Booking ID: ${booking.blockchainBookingId || "N/A"}
+Booking Reference: ${booking.bookingReference || "N/A"}
+Contract Address: ${booking.contractAddress || "N/A"}
+Chain ID: ${booking.chainId || "N/A"}
+Blockchain Amount: ${booking.blockchainAmountEth || "N/A"} ETH
+Blockchain Tx Hash: ${booking.blockchainTxHash || "N/A"}
 
 Thank you for choosing our hotel!
     `.trim();
@@ -165,7 +191,11 @@ Thank you for choosing our hotel!
                       }
                       alt={booking.name}
                       className="img-fluid rounded"
-                      style={{ height: "100px", width: "150px", objectFit: "cover" }}
+                      style={{
+                        height: "100px",
+                        width: "150px",
+                        objectFit: "cover",
+                      }}
                     />
                   </div>
 
@@ -175,6 +205,14 @@ Thank you for choosing our hotel!
                     <small>
                       <strong>Booking ID:</strong> {formatBookingId(booking.id)}
                     </small>
+                    {booking.bookingReference && (
+                      <>
+                        <br />
+                        <small>
+                          <strong>Ref:</strong> {booking.bookingReference}
+                        </small>
+                      </>
+                    )}
                   </div>
 
                   <div className="col-md-2">
@@ -200,6 +238,11 @@ Thank you for choosing our hotel!
                     <p className="mb-0">
                       <small>{formatPaymentMethod(booking.paymentMethod)}</small>
                     </p>
+                    {booking.paymentMode === "blockchain" && (
+                      <p className="mb-0">
+                        <small>{booking.blockchainAmountEth} ETH</small>
+                      </p>
+                    )}
                   </div>
 
                   <div className="col-md-2">
@@ -229,6 +272,25 @@ Thank you for choosing our hotel!
                     </div>
                   </div>
                 </div>
+
+                {booking.paymentMode === "blockchain" && (
+                  <MetaBox>
+                    <div>
+                      <strong>Wallet:</strong> {shortenHash(booking.walletAddress)}
+                    </div>
+                    <div>
+                      <strong>Tx Hash:</strong> {shortenHash(booking.blockchainTxHash)}
+                    </div>
+                    <div>
+                      <strong>On-chain Booking ID:</strong>{" "}
+                      {booking.blockchainBookingId || "N/A"}
+                    </div>
+                    <div>
+                      <strong>Contract:</strong>{" "}
+                      {shortenHash(booking.contractAddress)}
+                    </div>
+                  </MetaBox>
+                )}
               </BookingCard>
             ))
           ) : (

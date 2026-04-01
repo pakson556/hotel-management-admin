@@ -10,6 +10,11 @@ import styled from "styled-components";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FaWifi } from "react-icons/fa";
+import {
+  bookRoomOnChain,
+  calculateBlockchainAmountEth,
+  CONTRACT_ADDRESS,
+} from "../../blockchain/contract";
 
 const HeroSection = styled.div`
   height: 60vh;
@@ -64,19 +69,28 @@ const UserRoomDetails = () => {
       ? fields.images.map((img) => img?.fields?.file?.url).filter(Boolean)
       : Array.isArray(roomObj?.images)
       ? roomObj.images
-      : [roomObj?.image1, roomObj?.image2, roomObj?.image3, roomObj?.image4].filter(Boolean);
+      : [
+          roomObj?.image1,
+          roomObj?.image2,
+          roomObj?.image3,
+          roomObj?.image4,
+        ].filter(Boolean);
 
     const extras = Array.isArray(fields?.extras)
       ? fields.extras
       : Array.isArray(roomObj?.extras)
       ? roomObj.extras
       : typeof roomObj?.extras === "string"
-      ? roomObj.extras.split(",").map((item) => item.trim()).filter(Boolean)
+      ? roomObj.extras
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
       : [];
 
     return {
-      id: roomObj?.sys?.id || roomObj?.id || `room-${index}`,
-      slug: fields?.slug || roomObj?.slug || roomObj?.id || `room-${index}`,
+      id: roomObj?.sys?.id || roomObj?.id || `room-${index + 1}`,
+      chainRoomId: index + 1,
+      slug: fields?.slug || roomObj?.slug || roomObj?.id || `room-${index + 1}`,
       name: fields?.name || roomObj?.name || "Room",
       type: fields?.type || roomObj?.type || "Standard",
       price: Number(fields?.price || roomObj?.price || 0),
@@ -110,6 +124,10 @@ const UserRoomDetails = () => {
     if (!room || !user) return;
 
     const total = calculateTotal();
+    const bookingReference = `HB-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 7)
+      .toUpperCase()}`;
 
     setBookingDetails({
       ...room,
@@ -120,30 +138,77 @@ const UserRoomDetails = () => {
       userEmail: user.email,
       userName: user.displayName || user.email,
       bookingDate: new Date().toISOString(),
+      bookingReference,
+      blockchainAmountEth: calculateBlockchainAmountEth(total),
+      contractAddressPreview: `${CONTRACT_ADDRESS.slice(0, 6)}...${CONTRACT_ADDRESS.slice(-4)}`,
     });
 
     setShowPayment(true);
   };
 
   const handlePaymentComplete = async (paymentInfo) => {
-    const bookingRef = ref(db, "bookings");
-    const newBookingRef = push(bookingRef);
+    if (!bookingDetails) return;
 
-    const bookingData = {
-      ...bookingDetails,
-      id: newBookingRef.key,
-      paymentMethod: paymentInfo.method,
-      paymentStatus: paymentInfo.status,
-      transactionId: paymentInfo.transactionId,
-      bookingStatus: "pending",
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      let finalPaymentInfo = {
+        ...paymentInfo,
+      };
 
-    await set(newBookingRef, bookingData);
+      let bookingStatus = "pending";
+      let paymentMode = "traditional";
 
-    setShowPayment(false);
-    alert("Booking submitted successfully!");
-    navigate("/user/my-bookings");
+      if (paymentInfo.method === "metamask") {
+        finalPaymentInfo = await bookRoomOnChain({
+          roomId: bookingDetails.chainRoomId,
+          checkIn: bookingDetails.checkIn,
+          checkOut: bookingDetails.checkOut,
+          guests: bookingDetails.guests,
+          bookingRef: bookingDetails.bookingReference,
+          totalPriceGbp: bookingDetails.totalPrice,
+        });
+
+        bookingStatus = "confirmed";
+        paymentMode = "blockchain";
+      }
+
+      const bookingRef = ref(db, "bookings");
+      const newBookingRef = push(bookingRef);
+
+      const bookingData = {
+        ...bookingDetails,
+        id: newBookingRef.key,
+        paymentMethod: finalPaymentInfo.method,
+        paymentMode,
+        paymentStatus: finalPaymentInfo.status || "success",
+        transactionId:
+          finalPaymentInfo.transactionId || finalPaymentInfo.blockchainTxHash || "",
+        blockchainTxHash: finalPaymentInfo.blockchainTxHash || "",
+        blockchainBookingId: finalPaymentInfo.blockchainBookingId || "",
+        walletAddress: finalPaymentInfo.walletAddress || "",
+        chainId: finalPaymentInfo.chainId || "",
+        contractAddress: finalPaymentInfo.contractAddress || CONTRACT_ADDRESS,
+        bookingReference:
+          finalPaymentInfo.bookingReference || bookingDetails.bookingReference,
+        blockchainAmountEth:
+          finalPaymentInfo.blockchainAmountEth ||
+          bookingDetails.blockchainAmountEth,
+        bookingStatus,
+        timestamp: new Date().toISOString(),
+      };
+
+      await set(newBookingRef, bookingData);
+
+      setShowPayment(false);
+      alert(
+        paymentInfo.method === "metamask"
+          ? "Blockchain booking completed successfully!"
+          : "Booking submitted successfully!"
+      );
+      navigate("/user/my-bookings");
+    } catch (error) {
+      console.error(error);
+      alert(error?.message || "Payment failed. Please try again.");
+    }
   };
 
   if (!state?.[0]?.[0]?.rooms) {
@@ -202,7 +267,11 @@ const UserRoomDetails = () => {
             <div className="row mb-4">
               {(room.images || []).slice(1).map((img, index) => (
                 <div className="col-md-4 mb-3" key={index}>
-                  <img src={img} alt={room.name} className="img-fluid rounded" />
+                  <img
+                    src={img}
+                    alt={room.name}
+                    className="img-fluid rounded"
+                  />
                 </div>
               ))}
             </div>
@@ -302,9 +371,18 @@ const UserRoomDetails = () => {
 
               <hr />
 
-              <div className="d-flex justify-content-between mb-3">
+              <div className="d-flex justify-content-between mb-2">
                 <span>Total:</span>
-                <span className="h5">£ {Number(calculateTotal()).toLocaleString()}</span>
+                <span className="h5">
+                  £ {Number(calculateTotal()).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="d-flex justify-content-between mb-3">
+                <span>Demo blockchain total:</span>
+                <span className="text-muted">
+                  {calculateBlockchainAmountEth(calculateTotal())} ETH
+                </span>
               </div>
 
               <button

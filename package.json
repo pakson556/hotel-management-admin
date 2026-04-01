@@ -10,12 +10,14 @@
     "@material-ui/lab": "^4.0.0-alpha.60",
     "@material-ui/styles": "^4.11.4",
     "@mui/material": "^5.2.6",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react": "^12.1.2",
     "@testing-library/user-event": "^13.5.0",
     "ajv": "8.12.0",
     "ajv-keywords": "5.1.0",
     "bootstrap": "^4.5.0",
+    "ethers": "^6.16.0",
     "firebase": "^12.10.0",
     "jquery": "^3.6.0",
     "popper.js": "^1.16.1",
@@ -61,6 +63,20 @@
   },
   "devDependencies": {
     "@types/react": "^17.0.53",
-    "@types/react-dom": "^17.0.19"
-  }
+    "@types/react-dom": "^17.0.19",
+    "hardhat": "^3.3.0"
+  },
+  "description": "This project is part of the Course of Web & Hybrid development which is taken at Grand Hackathon.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pakson556/hotel-management-admin.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pakson556/hotel-management-admin/issues"
+  },
+  "homepage": "."
 }

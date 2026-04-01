@@ -1,0 +1,41 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_20-66d0aab3ddc963e90296bca29ed77bb35b00043c",
+  "solcVersion": "0.8.20",
+  "solcLongVersion": "0.8.20+commit.a1b79de6",
+  "compilerType": "solc",
+  "userSourceNameMap": {
+    "contracts/HotelBooking.sol": "project/contracts/HotelBooking.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": [],
+      "viaIR": true
+    },
+    "sources": {
+      "project/contracts/HotelBooking.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract HotelBooking {\n    address public owner;\n    uint256 public bookingCount;\n\n    struct Booking {\n        uint256 bookingId;\n        uint256 roomId;\n        uint256 totalPrice;\n        uint256 checkIn;\n        uint256 checkOut;\n        uint256 guests;\n        address guestWallet;\n        bool active;\n        uint256 createdAt;\n        string bookingRef;\n    }\n\n    mapping(uint256 => Booking) public bookings;\n    mapping(address => uint256[]) private userBookingIds;\n\n    event RoomBooked(\n        uint256 indexed bookingId,\n        uint256 indexed roomId,\n        address indexed guestWallet,\n        uint256 totalPrice,\n        string bookingRef\n    );\n\n    event BookingCancelled(\n        uint256 indexed bookingId,\n        address indexed guestWallet,\n        uint256 cancelledAt\n    );\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Only owner can call this\");\n        _;\n    }\n\n    modifier onlyBookingOwner(uint256 bookingId) {\n        require(bookings[bookingId].guestWallet == msg.sender, \"Not your booking\");\n        _;\n    }\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    function bookRoom(\n        uint256 roomId,\n        uint256 checkIn,\n        uint256 checkOut,\n        uint256 guests,\n        string calldata bookingRef\n    ) external payable returns (uint256) {\n        require(roomId > 0, \"Invalid room ID\");\n        require(checkOut > checkIn, \"Invalid dates\");\n        require(guests > 0, \"Guests must be at least 1\");\n        require(msg.value > 0, \"Payment required\");\n        require(bytes(bookingRef).length > 0, \"Booking reference required\");\n\n        bookingCount++;\n\n        bookings[bookingCount] = Booking({\n            bookingId: bookingCount,\n            roomId: roomId,\n            totalPrice: msg.value,\n            checkIn: checkIn,\n            checkOut: checkOut,\n            guests: guests,\n            guestWallet: msg.sender,\n            active: true,\n            createdAt: block.timestamp,\n            bookingRef: bookingRef\n        });\n\n        userBookingIds[msg.sender].push(bookingCount);\n\n        emit RoomBooked(\n            bookingCount,\n            roomId,\n            msg.sender,\n            msg.value,\n            bookingRef\n        );\n\n        return bookingCount;\n    }\n\n    function cancelBooking(uint256 bookingId) external onlyBookingOwner(bookingId) {\n        require(bookings[bookingId].bookingId != 0, \"Booking not found\");\n        require(bookings[bookingId].active, \"Booking already cancelled\");\n\n        bookings[bookingId].active = false;\n\n        emit BookingCancelled(bookingId, msg.sender, block.timestamp);\n    }\n\n    function getBooking(uint256 bookingId) external view returns (Booking memory) {\n        require(bookings[bookingId].bookingId != 0, \"Booking not found\");\n        return bookings[bookingId];\n    }\n\n    function getMyBookingIds() external view returns (uint256[] memory) {\n        return userBookingIds[msg.sender];\n    }\n\n    function withdraw() external onlyOwner {\n        uint256 balance = address(this).balance;\n        require(balance > 0, \"No funds to withdraw\");\n        payable(owner).transfer(balance);\n    }\n\n    function getContractBalance() external view returns (uint256) {\n        return address(this).balance;\n    }\n}"
+      }
+    }
+  }
+}
