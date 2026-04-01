@@ -90,7 +90,8 @@ const UserRoomDetails = () => {
     return {
       id: roomObj?.sys?.id || roomObj?.id || `room-${index + 1}`,
       chainRoomId: index + 1,
-      slug: fields?.slug || roomObj?.slug || roomObj?.id || `room-${index + 1}`,
+      slug:
+        fields?.slug || roomObj?.slug || roomObj?.id || `room-${index + 1}`,
       name: fields?.name || roomObj?.name || "Room",
       type: fields?.type || roomObj?.type || "Standard",
       price: Number(fields?.price || roomObj?.price || 0),
@@ -140,7 +141,10 @@ const UserRoomDetails = () => {
       bookingDate: new Date().toISOString(),
       bookingReference,
       blockchainAmountEth: calculateBlockchainAmountEth(total),
-      contractAddressPreview: `${CONTRACT_ADDRESS.slice(0, 6)}...${CONTRACT_ADDRESS.slice(-4)}`,
+      contractAddressPreview: `${CONTRACT_ADDRESS.slice(
+        0,
+        6
+      )}...${CONTRACT_ADDRESS.slice(-4)}`,
     });
 
     setShowPayment(true);
@@ -154,6 +158,7 @@ const UserRoomDetails = () => {
         ...paymentInfo,
       };
 
+      // all bookings should wait for admin approval
       let bookingStatus = "pending";
       let paymentMode = "traditional";
 
@@ -167,8 +172,8 @@ const UserRoomDetails = () => {
           totalPriceGbp: bookingDetails.totalPrice,
         });
 
-        bookingStatus = "confirmed";
         paymentMode = "blockchain";
+        bookingStatus = "pending";
       }
 
       const bookingRef = ref(db, "bookings");
@@ -181,7 +186,9 @@ const UserRoomDetails = () => {
         paymentMode,
         paymentStatus: finalPaymentInfo.status || "success",
         transactionId:
-          finalPaymentInfo.transactionId || finalPaymentInfo.blockchainTxHash || "",
+          finalPaymentInfo.transactionId ||
+          finalPaymentInfo.blockchainTxHash ||
+          "",
         blockchainTxHash: finalPaymentInfo.blockchainTxHash || "",
         blockchainBookingId: finalPaymentInfo.blockchainBookingId || "",
         walletAddress: finalPaymentInfo.walletAddress || "",
@@ -201,8 +208,8 @@ const UserRoomDetails = () => {
       setShowPayment(false);
       alert(
         paymentInfo.method === "metamask"
-          ? "Blockchain booking completed successfully!"
-          : "Booking submitted successfully!"
+          ? "Blockchain payment completed. Booking submitted and waiting for admin approval."
+          : "Booking submitted successfully and waiting for admin approval."
       );
       navigate("/user/my-bookings");
     } catch (error) {
