@@ -4,12 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:local": "hardhat run scripts/deploy.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.7",
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.3",

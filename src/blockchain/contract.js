@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 
-export const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+// Deployed to Sepolia TestNet
+export const CONTRACT_ADDRESS = "0xCC0e15A5d1aF7F150BBD0BD9e999C952bDBb20b7";
 
 export const CONTRACT_ABI = [
   {
@@ -254,16 +255,16 @@ export const CONTRACT_ABI = [
   },
 ];
 
-export const LOCAL_CHAIN_CONFIG = {
-  chainId: "0x7A69",
-  chainName: "Hardhat Localhost 8545",
+export const SEPOLIA_CHAIN_CONFIG = {
+  chainId: "0xaa36a7", // 11155111
+  chainName: "Sepolia Test Network",
   nativeCurrency: {
     name: "Ethereum",
     symbol: "ETH",
     decimals: 18,
   },
-  rpcUrls: ["http://127.0.0.1:8545"],
-  blockExplorerUrls: [],
+  rpcUrls: ["https://rpc.sepolia.org"],
+  blockExplorerUrls: ["https://sepolia.etherscan.io"],
 };
 
 export function calculateBlockchainAmountEth(totalPriceGbp) {
@@ -282,19 +283,19 @@ export async function ensureMetaMask() {
   }
 }
 
-export async function switchToLocalNetwork() {
+export async function switchToSepoliaNetwork() {
   await ensureMetaMask();
 
   try {
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: LOCAL_CHAIN_CONFIG.chainId }],
+      params: [{ chainId: SEPOLIA_CHAIN_CONFIG.chainId }],
     });
   } catch (switchError) {
     if (switchError.code === 4902) {
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
-        params: [LOCAL_CHAIN_CONFIG],
+        params: [SEPOLIA_CHAIN_CONFIG],
       });
     } else {
       throw switchError;
@@ -304,7 +305,7 @@ export async function switchToLocalNetwork() {
 
 export async function connectWallet() {
   await ensureMetaMask();
-  await switchToLocalNetwork();
+  await switchToSepoliaNetwork();
 
   const accounts = await window.ethereum.request({
     method: "eth_requestAccounts",
