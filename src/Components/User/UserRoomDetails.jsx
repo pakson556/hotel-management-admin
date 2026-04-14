@@ -154,63 +154,47 @@ const UserRoomDetails = () => {
     if (!bookingDetails) return;
 
     try {
-      let finalPaymentInfo = {
-        ...paymentInfo,
-      };
+      // Step 1: record traditional payment details (card/paypal already processed)
+      const traditionalPaymentInfo = { ...paymentInfo };
 
-      // all bookings should wait for admin approval
-      let bookingStatus = "pending";
-      let paymentMode = "traditional";
+      // Step 2: all payments create an on-chain booking proof on Sepolia
+      const blockchainInfo = await bookRoomOnChain({
+        roomId: bookingDetails.chainRoomId,
+        checkIn: bookingDetails.checkIn,
+        checkOut: bookingDetails.checkOut,
+        guests: bookingDetails.guests,
+        bookingRef: bookingDetails.bookingReference,
+        totalPriceGbp: bookingDetails.totalPrice,
+      });
 
-      if (paymentInfo.method === "metamask") {
-        finalPaymentInfo = await bookRoomOnChain({
-          roomId: bookingDetails.chainRoomId,
-          checkIn: bookingDetails.checkIn,
-          checkOut: bookingDetails.checkOut,
-          guests: bookingDetails.guests,
-          bookingRef: bookingDetails.bookingReference,
-          totalPriceGbp: bookingDetails.totalPrice,
-        });
-
-        paymentMode = "blockchain";
-        bookingStatus = "pending";
-      }
-
+      // Step 3: save to Firebase — all bookings pending until admin approval
       const bookingRef = ref(db, "bookings");
       const newBookingRef = push(bookingRef);
 
       const bookingData = {
         ...bookingDetails,
         id: newBookingRef.key,
-        paymentMethod: finalPaymentInfo.method,
-        paymentMode,
-        paymentStatus: finalPaymentInfo.status || "success",
+        paymentMethod: traditionalPaymentInfo.method,
+        paymentMode: "blockchain",
+        paymentStatus: "success",
         transactionId:
-          finalPaymentInfo.transactionId ||
-          finalPaymentInfo.blockchainTxHash ||
-          "",
-        blockchainTxHash: finalPaymentInfo.blockchainTxHash || "",
-        blockchainBookingId: finalPaymentInfo.blockchainBookingId || "",
-        walletAddress: finalPaymentInfo.walletAddress || "",
-        chainId: finalPaymentInfo.chainId || "",
-        contractAddress: finalPaymentInfo.contractAddress || CONTRACT_ADDRESS,
+          traditionalPaymentInfo.transactionId || blockchainInfo.blockchainTxHash,
+        blockchainTxHash: blockchainInfo.blockchainTxHash,
+        blockchainBookingId: blockchainInfo.blockchainBookingId,
+        walletAddress: blockchainInfo.walletAddress,
+        chainId: blockchainInfo.chainId,
+        contractAddress: blockchainInfo.contractAddress,
         bookingReference:
-          finalPaymentInfo.bookingReference || bookingDetails.bookingReference,
-        blockchainAmountEth:
-          finalPaymentInfo.blockchainAmountEth ||
-          bookingDetails.blockchainAmountEth,
-        bookingStatus,
+          blockchainInfo.bookingReference || bookingDetails.bookingReference,
+        blockchainAmountEth: blockchainInfo.blockchainAmountEth,
+        bookingStatus: "pending",
         timestamp: new Date().toISOString(),
       };
 
       await set(newBookingRef, bookingData);
 
       setShowPayment(false);
-      alert(
-        paymentInfo.method === "metamask"
-          ? "Blockchain payment completed. Booking submitted and waiting for admin approval."
-          : "Booking submitted successfully and waiting for admin approval."
-      );
+      alert("Booking submitted with on-chain proof. Waiting for admin approval.");
       navigate("/user/my-bookings");
     } catch (error) {
       console.error(error);
