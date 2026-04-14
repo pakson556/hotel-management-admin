@@ -87,7 +87,7 @@ const AddRooms = () => {
         alert("Room Added!");
         setName("");
         settype("");
-        setcapacity(0);
+        setcapacity(1);
         setdescription("");
         setextras("");
         setbreakfast(false);

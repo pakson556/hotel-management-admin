@@ -77,7 +77,7 @@ const UserProfile = () => {
     const fetchUserData = async () => {
       if (user) {
         const dbRef = ref(db);
-        const snapshot = await get(child(dbRef, `users/${user.uid}`));
+        const snapshot = await get(child(dbRef, `Users/${user.uid}`));
         if (snapshot.exists()) {
           setProfileData(snapshot.val());
         } else {
@@ -95,7 +95,7 @@ const UserProfile = () => {
 
   const handleUpdate = async () => {
     try {
-      await update(ref(db, `users/${user.uid}`), profileData);
+      await update(ref(db, `Users/${user.uid}`), profileData);
       alert("Profile updated successfully!");
       setIsEditing(false);
     } catch (error) {
@@ -182,7 +182,7 @@ const UserProfile = () => {
                     <div className="form-group">
                       <label>Phone</label>
                       <PhoneInput
-                        country={"pk"}
+                        country={"gb"}
                         value={profileData.phone}
                         onChange={(phone) => setProfileData({...profileData, phone})}
                         inputStyle={{ width: "100%" }}

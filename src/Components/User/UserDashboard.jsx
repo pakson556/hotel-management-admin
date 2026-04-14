@@ -53,6 +53,47 @@ const StatCard = styled.div`
   }
 `;
 
+const RoomCard = styled.div`
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--lightShadow);
+  transition: var(--mainTransition);
+  cursor: pointer;
+  height: 100%;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--darkShadow);
+  }
+
+  img {
+    height: 200px;
+    width: 100%;
+    object-fit: cover;
+  }
+`;
+
+const normalizeRoom = (roomObj, index = 0) => {
+  const fields = roomObj?.fields || roomObj;
+
+  const images = Array.isArray(fields?.images)
+    ? fields.images.map((img) => img?.fields?.file?.url).filter(Boolean)
+    : Array.isArray(roomObj?.images)
+    ? roomObj.images
+    : [roomObj?.image1, roomObj?.image2, roomObj?.image3, roomObj?.image4].filter(Boolean);
+
+  return {
+    id: roomObj?.sys?.id || roomObj?.id || `room-${index}`,
+    slug: fields?.slug || roomObj?.slug || roomObj?.id || `room-${index}`,
+    name: fields?.name || roomObj?.name || "Room",
+    type: fields?.type || roomObj?.type || "Standard",
+    price: Number(fields?.price || roomObj?.price || 0),
+    featured: Boolean(fields?.featured ?? roomObj?.featured),
+    images,
+  };
+};
+
 const UserDashboard = () => {
   const { user } = useUserAuth();
   const state = useSelector((state) => state);
@@ -61,8 +102,9 @@ const UserDashboard = () => {
 
   useEffect(() => {
     if (state[0] && state[0][0]) {
-      const featured = state[0][0].featuredRooms.slice(0, 3);
-      setFeaturedRooms(featured);
+      const allRooms = (state[0][0].rooms || []).map(normalizeRoom);
+      const featured = allRooms.filter((r) => r.featured).slice(0, 3);
+      setFeaturedRooms(featured.length ? featured : allRooms.slice(0, 3));
     }
 
     if (state[2]) {
@@ -113,12 +155,10 @@ const UserDashboard = () => {
           <div className="row">
             {featuredRooms.map((room) => (
               <div className="col-md-4 mb-4" key={room.id}>
-                <div className="card room h-100">
+                <RoomCard>
                   <img
-                    src={room.images[0]}
+                    src={room.images?.[0] || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"}
                     alt={room.name}
-                    className="card-img-top"
-                    style={{ height: "200px", objectFit: "cover" }}
                   />
                   <div className="card-body">
                     <h5 className="card-title">{room.name}</h5>
@@ -135,7 +175,7 @@ const UserDashboard = () => {
                       View Details
                     </Link>
                   </div>
-                </div>
+                </RoomCard>
               </div>
             ))}
           </div>
