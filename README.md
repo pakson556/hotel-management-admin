@@ -34,40 +34,31 @@ Clone the project
 
 ```bash
 git clone https://github.com/your-repo/hotel-management-admin.git
-```
 
 Go to the project directory
-
 ```bash
 cd hotel-management-admin
-```
 
 Install dependencies
-
 ```bash
 npm install
-```
 
 Start the server
-
 ```bash
 npm start
-```
 
 ## Blockchain
-
 Install blockchain dependencies
-
 ```bash
 cd blockchain && npm install
-```
+
+Run a local Hardhat node (keeps the blockchain running locally)
+```bash
+cd blockchain && npx hardhat node
 
 Deploy smart contract to Sepolia
-
 ```bash
 cd blockchain && npx hardhat run scripts/deploy.js --network sepolia
-```
 
 ## Acknowledgements
-
 Forked and extended from the original project by [Nabia-Sheikh](https://github.com/Nabia-Sheikh/hotel-management-admin).
